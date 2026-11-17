@@ -77,7 +77,7 @@ Decisiones respondidas durante la planificación:
 
 El usuario fijó como objetivo una aplicación local y repositorio público para las 20:15 del 16 de noviembre de 2026, con límite a las 20:30, hora de Cochabamba. Después indicó que la publicación en GitHub quedará pendiente. La conexión del navegador a GitHub fue rechazada por el control de acceso. El usuario creó la base en phpMyAdmin y hará la importación manual de `database/schema.sql` y `database/seed.sql`. Ollama ya está en ejecución según el usuario.
 
-El usuario importó ambos scripts SQL en phpMyAdmin. El frontend Angular y la API Express están implementados y arrancados en los puertos 4200 y 3000. El frontend compiló correctamente, la carga automática del contenido desde MySQL quedó confirmada por el usuario y hay un commit local. Falta verificar los flujos de cliente y administrador y el chat con Ollama. La navegación pública incluye Productos y no incluye Usuarios. El acceso a las cuentas aparece como «Ingresar» y «Registrarse».
+El usuario importó ambos scripts SQL en phpMyAdmin. El frontend Angular y la API Express están implementados y arrancados en los puertos 4200 y 3000. El frontend compiló correctamente. El usuario confirmó que el contenido carga automáticamente, pudo registrar una cuenta, ver productos, recibir una recomendación del chat, crear un pedido hasta ver el QR, subir un comprobante y observar el estado final «En camino» de un pedido a domicilio. También confirmó el acceso al panel administrador. Hay commits locales; GitHub continúa pendiente por indicación del usuario. La navegación pública incluye Productos y no incluye Usuarios. El acceso a las cuentas aparece como «Ingresar» y «Registrarse».
 
 ## Contenido ficticio aprobado
 
