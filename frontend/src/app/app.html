@@ -23,7 +23,7 @@
 @if (notice) { <div class="banner success" role="status">{{ notice }} <button (click)="notice = ''">×</button></div> }
 
 @if (!data) {
-  <main class="loading"><h1>CoffeeHouse</h1><p>Cargando contenido...</p></main>
+  <main class="loading"><h1>CoffeeHouse</h1><p>{{ error || 'Cargando contenido...' }}</p>@if (error) { <button class="button gold" (click)="loadContent()">Reintentar</button> }</main>
 } @else {
   @switch (page) {
     @case ('inicio') {

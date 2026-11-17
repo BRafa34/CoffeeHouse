@@ -15,7 +15,7 @@ Este registro recoge decisiones confirmadas durante la planificación de la demo
 | Fotos y video | MySQL guarda enlaces a fotos y al video de Pexels. | Elegir fotos reales autorizadas del negocio o gestionar archivos propios. Revisar disponibilidad, rendimiento y condiciones de uso de los recursos publicados. |
 | Administración | Una cuenta administradora de demostración edita productos, precios y servicios. | Acordar qué personal editará menú, servicios, horarios, pedidos y mensajes, y definir sus permisos. |
 | Comprobantes | Los archivos JPG, PNG o PDF se guardan en una carpeta del backend y MySQL registra sus rutas. | Definir almacenamiento persistente con acceso restringido, copias de seguridad, límites y conservación de archivos. |
-| Despliegue | La entrega usa demo local con Express, XAMPP para MySQL o MariaDB y Ollama en el mismo equipo, más un repositorio público con frontend y backend en GitHub. | Definir alojamiento, dominio, copias de seguridad, monitoreo y operación diaria con la cafetería. |
+| Despliegue | La demo local usa Express, XAMPP para MySQL o MariaDB y Ollama en el mismo equipo. La publicación del repositorio público de GitHub quedó pendiente por decisión del usuario. | Definir alojamiento, dominio, copias de seguridad, monitoreo y operación diaria con la cafetería. |
 
 ## Pendientes de la planificación actual
 

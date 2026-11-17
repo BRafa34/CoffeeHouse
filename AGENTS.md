@@ -60,7 +60,7 @@ Decisiones respondidas durante la planificación:
 - Después de la demo local, subir frontend y backend juntos a un repositorio de GitHub.
 - Dirección de envío: calle, número, zona y referencia.
 - Filtros del catálogo: categoría, precio y especialidades.
-- El asistente elegirá fotos de Pexels durante la implementación y se las mostrará al usuario para revisión.
+- Las fotos ilustrativas de Pexels elegidas para productos, servicios y galería están registradas en `MEDIA_PEXELS.md`.
 - Crear un panel interno con una cuenta administradora para la demo. Permite editar productos, precios y servicios.
 - Conservar el carrito al cerrar y volver a abrir el navegador.
 - Para pedidos a domicilio, activar automáticamente «En camino» cinco segundos después de «Listo», es decir, 25 segundos después de subir el comprobante.
@@ -77,7 +77,7 @@ Decisiones respondidas durante la planificación:
 
 El usuario fijó como objetivo una aplicación local y repositorio público para las 20:15 del 16 de noviembre de 2026, con límite a las 20:30, hora de Cochabamba. Después indicó que la publicación en GitHub quedará pendiente. La conexión del navegador a GitHub fue rechazada por el control de acceso. El usuario creó la base en phpMyAdmin y hará la importación manual de `database/schema.sql` y `database/seed.sql`. Ollama ya está en ejecución según el usuario.
 
-El frontend Angular y la API Express están implementados y arrancados en los puertos 4200 y 3000. El frontend compiló correctamente. Falta verificar la importación, la carga de datos desde MySQL, los flujos de cliente y administrador, y el chat con Ollama. La navegación pública incluye Productos y no incluye Usuarios. El acceso a las cuentas aparece como «Ingresar» y «Registrarse».
+El frontend Angular y la API Express están implementados y arrancados en los puertos 4200 y 3000. El frontend compiló correctamente y hay un commit local. Falta verificar la importación, la carga de datos desde MySQL, los flujos de cliente y administrador, y el chat con Ollama. La navegación pública incluye Productos y no incluye Usuarios. El acceso a las cuentas aparece como «Ingresar» y «Registrarse».
 
 ## Contenido ficticio aprobado
 

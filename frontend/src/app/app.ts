@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { finalize, timeout } from 'rxjs';
 
 type Product = { id: number; category_id: number; name: string; description: string; price: number; image_url: string | null; specialty: boolean; available: boolean };
 type Service = { id: number; name: string; description: string; image_url: string | null };
@@ -27,6 +28,7 @@ type ChatMessage = { sender: 'user' | 'assistant'; text: string; action?: { type
 })
 export class App implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly api = 'http://localhost:3000/api';
   data: SiteData | null = null;
   page = this.pageFromPath();
@@ -59,7 +61,7 @@ export class App implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadContent();
     if (this.token) {
-      this.http.get<{ user: User }>(`${this.api}/auth/me`, { headers: this.headers() }).subscribe({
+      this.http.get<{ user: User }>(`${this.api}/auth/me`, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
         next: ({ user }) => this.user = user,
         error: () => this.logout(),
       });
@@ -96,7 +98,8 @@ export class App implements OnInit, OnDestroy {
   }
 
   loadContent(): void {
-    this.http.get<SiteData>(`${this.api}/content`).subscribe({
+    this.error = '';
+    this.http.get<SiteData>(`${this.api}/content`).pipe(timeout(8000), finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: (data) => { this.data = data; this.error = ''; },
       error: () => this.error = 'No se pudo cargar el contenido. Comprueba que la API y MySQL estén iniciados.',
     });
@@ -174,7 +177,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   submitContact(): void {
-    this.http.post(`${this.api}/contact`, this.contact).subscribe({
+    this.http.post(`${this.api}/contact`, this.contact).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: () => { this.notice = 'Tu mensaje se guardó correctamente.'; this.contact = { name: '', phone: '', message: '' }; },
       error: (error) => this.error = error.error?.error || 'No se pudo enviar el mensaje.',
     });
@@ -182,7 +185,7 @@ export class App implements OnInit, OnDestroy {
 
   submitAuth(): void {
     const endpoint = this.page === 'register' ? 'register' : 'login';
-    this.http.post<{ token: string; user: User }>(`${this.api}/auth/${endpoint}`, this.auth).subscribe({
+    this.http.post<{ token: string; user: User }>(`${this.api}/auth/${endpoint}`, this.auth).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: ({ token, user }) => {
         this.token = token;
         this.user = user;
@@ -209,7 +212,7 @@ export class App implements OnInit, OnDestroy {
       address: this.address,
       items: this.cartDetails().map(({ product, quantity }) => ({ productId: product.id, quantity })),
     };
-    this.http.post<{ id: number; total: number }>(`${this.api}/orders`, body, { headers: this.headers() }).subscribe({
+    this.http.post<{ id: number; total: number }>(`${this.api}/orders`, body, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: (order) => {
         this.createdOrder = order;
         this.cart = [];
@@ -223,7 +226,7 @@ export class App implements OnInit, OnDestroy {
 
   loadOrders(): void {
     if (this.user?.role !== 'customer') return;
-    this.http.get<Order[]>(`${this.api}/orders`, { headers: this.headers() }).subscribe({
+    this.http.get<Order[]>(`${this.api}/orders`, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: (orders) => this.orders = orders,
     });
   }
@@ -233,7 +236,7 @@ export class App implements OnInit, OnDestroy {
     if (!file) return;
     const body = new FormData();
     body.append('proof', file);
-    this.http.post(`${this.api}/orders/${orderId}/proof`, body, { headers: this.headers() }).subscribe({
+    this.http.post(`${this.api}/orders/${orderId}/proof`, body, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: () => { this.notice = 'Comprobante recibido. Pago confirmado en esta demo.'; this.loadOrders(); },
       error: (error) => this.error = error.error?.error || 'No se pudo subir el comprobante.',
     });
@@ -246,7 +249,7 @@ export class App implements OnInit, OnDestroy {
     this.chatInput = '';
     this.chatBusy = true;
     this.http.post<{ reply: string; action?: { type: string; productId: number } }>(
-      `${this.api}/chat`, { message }, { headers: this.headers() }).subscribe({
+      `${this.api}/chat`, { message }, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
         next: (result) => {
           this.chatMessages.push({ sender: 'assistant', text: result.reply, action: result.action });
           this.chatBusy = false;
@@ -283,7 +286,7 @@ export class App implements OnInit, OnDestroy {
     const request = this.selectedProduct
       ? this.http.put(url, this.productForm, { headers: this.headers() })
       : this.http.post(url, this.productForm, { headers: this.headers() });
-    request.subscribe({
+    request.pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: () => { this.notice = 'Producto guardado.'; this.selectedProduct = null; this.loadContent(); },
       error: (error) => this.error = error.error?.error || 'No se pudo guardar el producto.',
     });
@@ -299,7 +302,7 @@ export class App implements OnInit, OnDestroy {
     const request = this.selectedService
       ? this.http.put(url, this.serviceForm, { headers: this.headers() })
       : this.http.post(url, this.serviceForm, { headers: this.headers() });
-    request.subscribe({
+    request.pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: () => { this.notice = 'Servicio guardado.'; this.selectedService = null; this.loadContent(); },
       error: (error) => this.error = error.error?.error || 'No se pudo guardar el servicio.',
     });
