@@ -6,6 +6,10 @@ export async function chat(request, response) {
     return response.status(400).json({ error: 'Escribe un mensaje de hasta 500 caracteres.' });
   }
   const lower = message.toLocaleLowerCase('es');
+  const history = (Array.isArray(request.body.history) ? request.body.history : [])
+    .slice(-10)
+    .filter((item) => ['user', 'assistant'].includes(item.sender) && typeof item.text === 'string')
+    .map((item) => ({ role: item.sender, content: item.text.slice(0, 500) }));
   const products = await query('SELECT id, name, description, price FROM products WHERE available = 1 ORDER BY id');
 
   if (/pedido|estado|orden/i.test(lower) && request.user?.role === 'customer') {
@@ -18,7 +22,8 @@ export async function chat(request, response) {
     return response.json({ reply: 'Inicia sesión para consultar tus pedidos.' });
   }
   if (/agrega|añade|pon en.*carrito/i.test(lower)) {
-    const found = products.find((product) => lower.includes(product.name.toLocaleLowerCase('es')));
+    const found = products.find((product) => lower.includes(product.name.toLocaleLowerCase('es')))
+      || products.find((product) => product.name.toLocaleLowerCase('es').split(' ').some((word) => word.length >= 5 && lower.includes(word)));
     if (found) {
       return response.json({
         reply: `¿Quieres agregar ${found.name} al carrito por Bs ${Number(found.price).toFixed(2)}?`,
@@ -42,6 +47,7 @@ export async function chat(request, response) {
         stream: false,
         messages: [
           { role: 'system', content: `Eres el asistente de CoffeeHouse. Responde en español y usa exclusivamente estos datos. Si falta información, dilo. No inventes precios, disponibilidad ni estados de pedidos. Datos: ${context}` },
+          ...history,
           { role: 'user', content: message },
         ],
       }),

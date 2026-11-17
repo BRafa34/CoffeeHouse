@@ -249,7 +249,7 @@ export class App implements OnInit, OnDestroy {
     this.chatInput = '';
     this.chatBusy = true;
     this.http.post<{ reply: string; action?: { type: string; productId: number } }>(
-      `${this.api}/chat`, { message }, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
+      `${this.api}/chat`, { message, history: this.chatMessages.slice(0, -1).slice(-10) }, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
         next: (result) => {
           this.chatMessages.push({ sender: 'assistant', text: result.reply, action: result.action });
           this.chatBusy = false;
