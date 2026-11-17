@@ -1,0 +1,273 @@
+<header class="site-header">
+  <a class="brand" href="/" (click)="go($event, '/')"><span class="brand-dot"></span>{{ text('brand', 'global') }}</a>
+  <nav aria-label="Navegación principal">
+    @for (item of data?.navigation || []; track item.path) {
+      <a [href]="item.path" (click)="go($event, item.path)" [class.active]="(item.path === '/' ? 'inicio' : item.path.slice(1)) === page">{{ item.label }}</a>
+    }
+  </nav>
+  <div class="header-actions">
+    @if (user) {
+      <span class="greeting">{{ user.name }}</span>
+      @if (user.role === 'customer') { <a href="/orders" (click)="go($event, '/orders')">{{ text('orders', 'global') }}</a> }
+      @if (user.role === 'admin') { <a href="/admin" (click)="go($event, '/admin')">Panel</a> }
+      <button class="text-button" (click)="logout()">Salir</button>
+    } @else {
+      <a href="/login" (click)="go($event, '/login')">{{ text('login', 'global') }}</a>
+      <a class="register-link" href="/register" (click)="go($event, '/register')">{{ text('register', 'global') }}</a>
+    }
+    <a class="cart-link" href="/cart" (click)="go($event, '/cart')" aria-label="Ver carrito">{{ text('cart', 'global') }} <span>{{ cart.length }}</span></a>
+  </div>
+</header>
+
+@if (error) { <div class="banner error" role="alert">{{ error }} <button (click)="error = ''">×</button></div> }
+@if (notice) { <div class="banner success" role="status">{{ notice }} <button (click)="notice = ''">×</button></div> }
+
+@if (!data) {
+  <main class="loading"><h1>CoffeeHouse</h1><p>Cargando contenido...</p></main>
+} @else {
+  @switch (page) {
+    @case ('inicio') {
+      <main>
+        <section class="hero">
+          @if (media('video', 'inicio'); as video) {
+            <video #heroVideo [autoplay]="!videoPaused" muted loop playsinline [attr.poster]="media('poster', 'inicio')?.file_url || null">
+              <source [src]="video.file_url" type="video/mp4">
+            </video>
+            <button class="video-toggle" (click)="toggleVideo(heroVideo)">{{ videoPaused ? 'Reproducir video' : 'Pausar video' }}</button>
+          }
+          <div class="hero-shade"></div>
+          <div class="hero-content">
+            <p class="eyebrow">{{ text('location') }}</p>
+            <h1>{{ text('title') }}<em>{{ text('tagline') }}</em></h1>
+            <p>{{ text('intro') }}</p>
+            <a class="button gold" href="/productos" (click)="go($event, '/productos')">{{ text('button') }}</a>
+          </div>
+        </section>
+        <section class="home-links">
+          <a href="/especialidades" (click)="go($event, '/especialidades')"><strong>{{ text('title', 'especialidades') }}</strong><span>↗</span></a>
+          <a href="/servicios" (click)="go($event, '/servicios')"><strong>{{ text('title', 'servicios') }}</strong><span>↗</span></a>
+          <a href="/nosotros" (click)="go($event, '/nosotros')"><strong>{{ text('title', 'nosotros') }}</strong><span>↗</span></a>
+        </section>
+      </main>
+    }
+    @case ('servicios') {
+      <main class="page-shell">
+        <div class="page-intro"><p class="eyebrow">COFFEEHOUSE</p><h1>{{ text('title') }}</h1><p>{{ text('intro') }}</p></div>
+        <div class="card-grid">
+          @for (service of data.services; track service.id) {
+            <article class="content-card service-card">
+              @if (service.image_url) { <img [src]="service.image_url" [alt]="service.name"> }
+              <div><span class="small-gold">0{{ $index + 1 }}</span><h2>{{ service.name }}</h2><p>{{ service.description }}</p></div>
+            </article>
+          }
+        </div>
+      </main>
+    }
+    @case ('productos') {
+      <main class="page-shell">
+        <div class="page-intro"><p class="eyebrow">COFFEEHOUSE</p><h1>{{ text('title') }}</h1><p>{{ text('intro') }}</p></div>
+        <div class="filters">
+          <input type="search" [(ngModel)]="search" placeholder="Buscar productos" aria-label="Buscar productos">
+          <select [(ngModel)]="category" aria-label="Categoría">
+            <option [ngValue]="0">Todas las categorías</option>
+            @for (item of data.categories; track item.id) { <option [ngValue]="item.id">{{ item.name }}</option> }
+          </select>
+          <label class="range-label">Hasta Bs {{ maxPrice }}<input type="range" min="15" max="50" step="1" [(ngModel)]="maxPrice"></label>
+          <label class="checkbox-label"><input type="checkbox" [(ngModel)]="specialtyOnly"> Especialidades</label>
+        </div>
+        <div class="product-grid">
+          @for (product of products(); track product.id) {
+            <article class="product-card">
+              <div class="product-image">
+                @if (product.image_url) { <img [src]="product.image_url" [alt]="product.name"> }
+                @else { <span>☕</span> }
+              </div>
+              <div class="product-body"><span class="small-gold">{{ categoryName(product.category_id) }}</span><h2>{{ product.name }}</h2><p>{{ product.description }}</p>
+                <div class="product-bottom"><strong>Bs {{ product.price }}</strong><button class="button small" (click)="addToCart(product)">Agregar</button></div>
+              </div>
+            </article>
+          }
+        </div>
+        @if (!products().length) { <p class="empty">No hay productos con esos filtros.</p> }
+      </main>
+    }
+    @case ('especialidades') {
+      <main class="page-shell">
+        <div class="page-intro"><p class="eyebrow">SELECCIÓN DE LA CASA</p><h1>{{ text('title') }}</h1><p>{{ text('intro') }}</p></div>
+        <div class="product-grid">
+          @for (product of specialties(); track product.id) {
+            <article class="product-card">
+              <div class="product-image">@if (product.image_url) { <img [src]="product.image_url" [alt]="product.name"> } @else { <span>☕</span> }</div>
+              <div class="product-body"><span class="small-gold">{{ categoryName(product.category_id) }}</span><h2>{{ product.name }}</h2><p>{{ product.description }}</p>
+                <div class="product-bottom"><strong>Bs {{ product.price }}</strong><button class="button small" (click)="addToCart(product)">Agregar</button></div>
+              </div>
+            </article>
+          }
+        </div>
+      </main>
+    }
+    @case ('nosotros') {
+      <main class="page-shell">
+        <div class="page-intro"><p class="eyebrow">NUESTRA HISTORIA</p><h1>{{ text('title') }}</h1><p>{{ text('story') }}</p></div>
+        <div class="about-grid">
+          <div><span class="small-gold">DIRECCIÓN FICTICIA</span><p>{{ text('address') }}</p></div>
+          <div><span class="small-gold">TELÉFONO DE DEMO</span><p>{{ text('phone') }}</p></div>
+          <div><span class="small-gold">HORARIOS</span><p>{{ text('hours') }}</p></div>
+          <div><span class="small-gold">CORREO</span><p>{{ text('email') }}</p></div>
+        </div>
+        <div class="gallery">@for (image of gallery(); track image.id) { <img [src]="image.file_url" [alt]="image.alt_text || 'Cafetería ilustrativa'"> }</div>
+      </main>
+    }
+    @case ('precios') {
+      <main class="page-shell">
+        <div class="page-intro"><p class="eyebrow">NUESTRO MENÚ</p><h1>{{ text('title') }}</h1><p>{{ text('intro') }}</p></div>
+        @for (categoryItem of data.categories; track categoryItem.id) {
+          <section class="price-section"><h2>{{ categoryItem.name }}</h2>
+            <div class="price-grid">
+              @for (product of data.products; track product.id) {
+                @if (product.category_id === categoryItem.id && product.available) {
+                  <article class="price-item">
+                    @if (product.image_url) { <img [src]="product.image_url" [alt]="product.name"> }
+                    <div><strong>{{ product.name }}</strong><p>{{ product.description }}</p></div><b>Bs {{ product.price }}</b>
+                  </article>
+                }
+              }
+            </div>
+          </section>
+        }
+      </main>
+    }
+    @case ('contactos') {
+      <main class="page-shell narrow">
+        <div class="page-intro"><p class="eyebrow">HABLEMOS</p><h1>{{ text('title') }}</h1><p>{{ text('intro') }}</p></div>
+        <form class="form-card" (ngSubmit)="submitContact()">
+          <label>Nombre<input name="contactName" [(ngModel)]="contact.name" required maxlength="120"></label>
+          <label>Teléfono<input name="contactPhone" [(ngModel)]="contact.phone" required maxlength="40"></label>
+          <label>Mensaje<textarea name="contactMessage" [(ngModel)]="contact.message" required maxlength="3000" rows="6"></textarea></label>
+          <button class="button gold" type="submit">Enviar mensaje</button>
+        </form>
+      </main>
+    }
+    @case ('login') {
+      <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">MI CUENTA</p><h1>Ingresar</h1></div>
+        <form class="form-card" (ngSubmit)="submitAuth()">
+          <label>Correo o teléfono<input name="identifier" [(ngModel)]="auth.identifier" required></label>
+          <label>Contraseña<input name="password" type="password" [(ngModel)]="auth.password" required></label>
+          <button class="button gold" type="submit">Ingresar</button>
+          <p>¿Aún no tienes cuenta? <a href="/register" (click)="go($event, '/register')">Regístrate</a></p>
+        </form>
+      </main>
+    }
+    @case ('register') {
+      <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">MI CUENTA</p><h1>Registrarse</h1></div>
+        <form class="form-card" (ngSubmit)="submitAuth()">
+          <label>Nombre<input name="name" [(ngModel)]="auth.name" required></label>
+          <label>Correo<input name="email" type="email" [(ngModel)]="auth.email" required></label>
+          <label>Teléfono<input name="phone" [(ngModel)]="auth.phone" required></label>
+          <label>Contraseña<input name="password" type="password" [(ngModel)]="auth.password" required minlength="8"></label>
+          <button class="button gold" type="submit">Crear cuenta</button>
+        </form>
+      </main>
+    }
+    @case ('cart') {
+      <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">TU SELECCIÓN</p><h1>Carrito</h1></div>
+        @for (entry of cartDetails(); track entry.product.id) {
+          <div class="cart-row"><div><strong>{{ entry.product.name }}</strong><span>Bs {{ entry.product.price }}</span></div>
+            <div class="quantity"><button (click)="changeQuantity(entry.product.id, -1)">−</button><span>{{ entry.quantity }}</span><button (click)="changeQuantity(entry.product.id, 1)">+</button></div>
+          </div>
+        }
+        @if (cartDetails().length) {
+          <p class="cart-total">Total <strong>Bs {{ cartTotal() }}</strong></p>
+          <form class="form-card" (ngSubmit)="checkout()">
+            <label>Entrega<select name="fulfillment" [(ngModel)]="fulfillment"><option value="pickup">Retiro en cafetería</option><option value="delivery">Envío a domicilio sin costo</option></select></label>
+            @if (fulfillment === 'delivery') {
+              <label>Calle<input name="street" [(ngModel)]="address.street" required></label>
+              <label>Número<input name="number" [(ngModel)]="address.number" required></label>
+              <label>Zona<input name="zone" [(ngModel)]="address.zone" required></label>
+              <label>Referencia<input name="reference" [(ngModel)]="address.reference" required></label>
+            }
+            <button class="button gold" type="submit">Confirmar pedido</button>
+          </form>
+        } @else { <p class="empty">Tu carrito está vacío.</p><a class="button gold" href="/productos" (click)="go($event, '/productos')">Ver productos</a> }
+      </main>
+    }
+    @case ('confirmation') {
+      <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">GRACIAS POR TU PEDIDO</p><h1>Pedido confirmado</h1></div>
+        @if (createdOrder) { <p>Pedido #{{ createdOrder.id }} · Bs {{ createdOrder.total }}</p> }
+        <div class="payment-card"><img src="http://localhost:3000/assets/qr-pago-demo.png" alt="QR de demostración, pago ficticio">
+          <div><h2>Pago ficticio</h2><p>Este QR es solo para la demostración. Sube un comprobante JPG, PNG o PDF para continuar.</p></div>
+        </div>
+        @for (order of orders; track order.id) {
+          @if (!createdOrder || order.id === createdOrder.id) {
+            <div class="order-card"><h3>Pedido #{{ order.id }}</h3><p>Estado <strong>{{ order.status }}</strong></p>
+              @if (!order.proof_uploaded_at) { <label class="upload-label">Subir comprobante<input type="file" accept=".jpg,.jpeg,.png,.pdf" (change)="proofSelected($event, order.id)"></label> }
+            </div>
+          }
+        }
+        <a href="/orders" (click)="go($event, '/orders')">Ver mis pedidos</a>
+      </main>
+    }
+    @case ('orders') {
+      <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">MI CUENTA</p><h1>Mis pedidos</h1></div>
+        @for (order of orders; track order.id) {
+          <article class="order-card"><div class="order-heading"><h2>Pedido #{{ order.id }}</h2><strong>{{ order.status }}</strong></div>
+            <p>{{ order.fulfillment === 'pickup' ? 'Retiro en cafetería' : 'Envío a domicilio' }} · Bs {{ order.total }}</p>
+            @for (item of order.items; track item.product_name) { <p>{{ item.quantity }} × {{ item.product_name }}</p> }
+            @if (!order.proof_uploaded_at) { <label class="upload-label">Subir comprobante<input type="file" accept=".jpg,.jpeg,.png,.pdf" (change)="proofSelected($event, order.id)"></label> }
+          </article>
+        }
+        @if (!orders.length) { <p class="empty">Todavía no tienes pedidos.</p> }
+      </main>
+    }
+    @case ('admin') {
+      <main class="page-shell">
+        @if (user?.role === 'admin') {
+          <div class="page-intro"><p class="eyebrow">ADMINISTRACIÓN</p><h1>Productos y servicios</h1></div>
+          <div class="admin-columns">
+            <section><h2>Productos</h2>
+              <form class="form-card" (ngSubmit)="saveProduct()">
+                <label>Nombre<input name="productName" [(ngModel)]="productForm.name" required></label>
+                <label>Categoría<select name="productCategory" [(ngModel)]="productForm.category_id">@for (item of data.categories; track item.id) { <option [ngValue]="item.id">{{ item.name }}</option> }</select></label>
+                <label>Descripción<textarea name="productDescription" [(ngModel)]="productForm.description"></textarea></label>
+                <label>Precio<input name="productPrice" type="number" min="0" step="0.01" [(ngModel)]="productForm.price" required></label>
+                <label>URL de foto<input name="productImage" [(ngModel)]="productForm.image_url"></label>
+                <label class="checkbox-label"><input name="productSpecialty" type="checkbox" [(ngModel)]="productForm.specialty"> Especialidad</label>
+                <label class="checkbox-label"><input name="productAvailable" type="checkbox" [(ngModel)]="productForm.available"> Disponible</label>
+                <button class="button gold" type="submit">{{ selectedProduct ? 'Guardar cambios' : 'Crear producto' }}</button>
+              </form>
+              @for (product of data.products; track product.id) { <div class="admin-row"><span>{{ product.name }} · Bs {{ product.price }}</span><button (click)="editProduct(product)">Editar</button></div> }
+            </section>
+            <section><h2>Servicios</h2>
+              <form class="form-card" (ngSubmit)="saveService()">
+                <label>Nombre<input name="serviceName" [(ngModel)]="serviceForm.name" required></label>
+                <label>Descripción<textarea name="serviceDescription" [(ngModel)]="serviceForm.description"></textarea></label>
+                <label>URL de foto<input name="serviceImage" [(ngModel)]="serviceForm.image_url"></label>
+                <button class="button gold" type="submit">{{ selectedService ? 'Guardar cambios' : 'Crear servicio' }}</button>
+              </form>
+              @for (service of data.services; track service.id) { <div class="admin-row"><span>{{ service.name }}</span><button (click)="editService(service)">Editar</button></div> }
+            </section>
+          </div>
+        } @else { <p class="empty">Acceso reservado.</p> }
+      </main>
+    }
+    @default { <main class="page-shell"><h1>Página no encontrada</h1><a href="/" (click)="go($event, '/')">Volver al inicio</a></main> }
+  }
+}
+
+<footer class="site-footer"><span>{{ text('brand', 'global') }} · {{ text('location', 'inicio') }}</span><span>{{ text('footer', 'global') }}</span></footer>
+
+<button class="chat-toggle" (click)="chatOpen = !chatOpen" [attr.aria-expanded]="chatOpen" aria-label="Abrir chat">✦ <span>Chat</span></button>
+@if (chatOpen) {
+  <aside class="chat-panel" aria-label="Chat de CoffeeHouse">
+    <div class="chat-title"><strong>Asistente CoffeeHouse</strong><button (click)="chatOpen = false" aria-label="Cerrar chat">×</button></div>
+    <div class="chat-messages">
+      @for (message of chatMessages; track $index) {
+        <div class="chat-message" [class.from-user]="message.sender === 'user'"><p>{{ message.text }}</p>
+          @if (message.action) { <button class="button small" (click)="confirmChatAdd(message)">Sí, agregar al carrito</button> }
+        </div>
+      }
+      @if (chatBusy) { <p class="chat-wait">Escribiendo...</p> }
+    </div>
+    <form class="chat-form" (ngSubmit)="sendChat()"><input name="chatInput" [(ngModel)]="chatInput" placeholder="Escribe tu pregunta" aria-label="Mensaje del chat"><button type="submit">Enviar</button></form>
+  </aside>
+}
