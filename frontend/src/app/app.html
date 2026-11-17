@@ -83,7 +83,7 @@
                 @else { <span>☕</span> }
               </div>
               <div class="product-body"><span class="small-gold">{{ categoryName(product.category_id) }}</span><h2>{{ product.name }}</h2><p>{{ product.description }}</p>
-                <div class="product-bottom"><strong>Bs {{ product.price }}</strong><button class="button small" (click)="addToCart(product)">Agregar</button></div>
+                <div class="product-bottom"><strong>Bs {{ product.price }}</strong><button class="button small" [disabled]="restoringSession" (click)="addToCart(product)">Agregar</button></div>
               </div>
             </article>
           }
@@ -99,7 +99,7 @@
             <article class="product-card">
               <div class="product-image">@if (product.image_url) { <img [src]="product.image_url" [alt]="product.name"> } @else { <span>☕</span> }</div>
               <div class="product-body"><span class="small-gold">{{ categoryName(product.category_id) }}</span><h2>{{ product.name }}</h2><p>{{ product.description }}</p>
-                <div class="product-bottom"><strong>Bs {{ product.price }}</strong><button class="button small" (click)="addToCart(product)">Agregar</button></div>
+                <div class="product-bottom"><strong>Bs {{ product.price }}</strong><button class="button small" [disabled]="restoringSession" (click)="addToCart(product)">Agregar</button></div>
               </div>
             </article>
           }
@@ -150,22 +150,24 @@
     }
     @case ('login') {
       <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">MI CUENTA</p><h1>Ingresar</h1></div>
+        @if (pendingCartAddition) { <p role="status">Inicia sesión para agregar el producto al carrito.</p> }
         <form class="form-card" (ngSubmit)="submitAuth()">
           <label>Correo o teléfono<input name="identifier" [(ngModel)]="auth.identifier" required></label>
           <label>Contraseña<input name="password" type="password" [(ngModel)]="auth.password" required></label>
-          <button class="button gold" type="submit">Ingresar</button>
+          <button class="button gold" type="submit" [disabled]="restoringSession">Ingresar</button>
           <p>¿Aún no tienes cuenta? <a href="/register" (click)="go($event, '/register')">Regístrate</a></p>
         </form>
       </main>
     }
     @case ('register') {
       <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">MI CUENTA</p><h1>Registrarse</h1></div>
+        @if (pendingCartAddition) { <p role="status">Crea una cuenta para agregar el producto al carrito.</p> }
         <form class="form-card" (ngSubmit)="submitAuth()">
           <label>Nombre<input name="name" [(ngModel)]="auth.name" required></label>
           <label>Correo<input name="email" type="email" [(ngModel)]="auth.email" required></label>
           <label>Teléfono<input name="phone" [(ngModel)]="auth.phone" required></label>
           <label>Contraseña<input name="password" type="password" [(ngModel)]="auth.password" required minlength="8"></label>
-          <button class="button gold" type="submit">Crear cuenta</button>
+          <button class="button gold" type="submit" [disabled]="restoringSession">Crear cuenta</button>
         </form>
       </main>
     }
@@ -173,7 +175,7 @@
       <main class="page-shell narrow"><div class="page-intro"><p class="eyebrow">TU SELECCIÓN</p><h1>Carrito</h1></div>
         @for (entry of cartDetails(); track entry.product.id) {
           <div class="cart-row"><div><strong>{{ entry.product.name }}</strong><span>Bs {{ entry.product.price }}</span></div>
-            <div class="quantity"><button (click)="changeQuantity(entry.product.id, -1)">−</button><span>{{ entry.quantity }}</span><button (click)="changeQuantity(entry.product.id, 1)">+</button></div>
+            <div class="quantity"><button (click)="removeOneFromCart(entry.product.id)">−</button><span>{{ entry.quantity }}</span><button [disabled]="restoringSession" (click)="addToCart(entry.product)">+</button></div>
           </div>
         }
         @if (cartDetails().length) {
@@ -186,7 +188,7 @@
               <label>Zona<input name="zone" [(ngModel)]="address.zone" required></label>
               <label>Referencia<input name="reference" [(ngModel)]="address.reference" required></label>
             }
-            <button class="button gold" type="submit">Confirmar pedido</button>
+            <button class="button gold" type="submit" [disabled]="restoringSession">Confirmar pedido</button>
           </form>
         } @else { <p class="empty">Tu carrito está vacío.</p><a class="button gold" href="/productos" (click)="go($event, '/productos')">Ver productos</a> }
       </main>
@@ -263,7 +265,7 @@
     <div class="chat-messages">
       @for (message of chatMessages; track $index) {
         <div class="chat-message" [class.from-user]="message.sender === 'user'"><p>{{ message.text }}</p>
-          @if (message.action) { <button class="button small" (click)="confirmChatAdd(message)">Sí, agregar al carrito</button> }
+          @if (message.action) { <button class="button small" [disabled]="restoringSession" (click)="confirmChatAdd(message)">Sí, agregar al carrito</button> }
         </div>
       }
       @if (chatBusy) { <p class="chat-wait">Escribiendo...</p> }

@@ -19,6 +19,7 @@ type CartItem = { productId: number; quantity: number };
 type Order = { id: number; fulfillment: string; total: number; status: string; proof_uploaded_at: string | null; items: { product_name: string; quantity: number; unit_price: number }[] };
 type User = { id: number; name: string; role: 'customer' | 'admin' };
 type ChatMessage = { sender: 'user' | 'assistant'; text: string; action?: { type: string; productId: number } };
+type PendingCartAddition = { productId: number; returnPath: string; chatMessage?: ChatMessage };
 
 @Component({
   selector: 'app-root',
@@ -36,7 +37,9 @@ export class App implements OnInit, OnDestroy {
   notice = '';
   token = localStorage.getItem('coffeehouse_token') || '';
   user: User | null = null;
+  restoringSession = Boolean(this.token);
   cart: CartItem[] = this.loadCart();
+  pendingCartAddition: PendingCartAddition | null = null;
   search = '';
   category = 0;
   specialtyOnly = false;
@@ -61,9 +64,12 @@ export class App implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadContent();
     if (this.token) {
-      this.http.get<{ user: User }>(`${this.api}/auth/me`, { headers: this.headers() }).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
+      this.http.get<{ user: User }>(`${this.api}/auth/me`, { headers: this.headers() }).pipe(timeout(8000), finalize(() => {
+        this.restoringSession = false;
+        this.changeDetector.markForCheck();
+      })).subscribe({
         next: ({ user }) => this.user = user,
-        error: () => this.logout(),
+        error: () => this.clearSession(),
       });
     }
     window.addEventListener('popstate', this.onPopState);
@@ -77,7 +83,10 @@ export class App implements OnInit, OnDestroy {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
   }
 
-  private onPopState = () => { this.page = this.pageFromPath(); this.loadPageData(); };
+  private onPopState = () => {
+    this.updatePage();
+    this.changeDetector.markForCheck();
+  };
 
   private pageFromPath(): string {
     return window.location.pathname.slice(1) || 'inicio';
@@ -86,11 +95,20 @@ export class App implements OnInit, OnDestroy {
   go(event: Event | null, path: string): void {
     event?.preventDefault();
     window.history.pushState({}, '', path);
+    this.updatePage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private get isAuthPage(): boolean {
+    return this.page === 'login' || this.page === 'register';
+  }
+
+  private updatePage(): void {
     this.page = this.pageFromPath();
+    if (!this.isAuthPage) this.pendingCartAddition = null;
     this.error = '';
     this.notice = '';
     this.loadPageData();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   private loadPageData(): void {
@@ -145,19 +163,36 @@ export class App implements OnInit, OnDestroy {
     localStorage.setItem('coffeehouse_cart', JSON.stringify(this.cart));
   }
 
-  addToCart(product: Product): void {
+  addToCart(product: Product, chatMessage?: ChatMessage): void {
+    if (this.restoringSession) return;
+    if (this.user?.role === 'admin') {
+      this.error = 'Ingresa con una cuenta de cliente para agregar productos al carrito.';
+      return;
+    }
+    if (!this.user) {
+      this.pendingCartAddition = {
+        productId: product.id,
+        returnPath: this.isAuthPage ? '/productos' : window.location.href,
+        chatMessage,
+      };
+      this.chatOpen = false;
+      if (!this.isAuthPage) this.go(null, '/login');
+      return;
+    }
+
     const item = this.cart.find((entry) => entry.productId === product.id);
     if (item) item.quantity++;
     else this.cart.push({ productId: product.id, quantity: 1 });
     this.saveCart();
+    if (chatMessage) chatMessage.action = undefined;
     this.notice = `${product.name} agregado al carrito.`;
   }
 
-  changeQuantity(productId: number, amount: number): void {
+  removeOneFromCart(productId: number): void {
     const item = this.cart.find((entry) => entry.productId === productId);
     if (!item) return;
-    item.quantity += amount;
-    this.cart = this.cart.filter((entry) => entry.quantity > 0);
+    item.quantity--;
+    if (item.quantity === 0) this.cart = this.cart.filter((entry) => entry !== item);
     this.saveCart();
   }
 
@@ -184,6 +219,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   submitAuth(): void {
+    if (this.restoringSession) return;
     const endpoint = this.page === 'register' ? 'register' : 'login';
     this.http.post<{ token: string; user: User }>(`${this.api}/auth/${endpoint}`, this.auth).pipe(finalize(() => this.changeDetector.markForCheck())).subscribe({
       next: ({ token, user }) => {
@@ -191,17 +227,28 @@ export class App implements OnInit, OnDestroy {
         this.user = user;
         localStorage.setItem('coffeehouse_token', token);
         this.auth.password = '';
-        this.go(null, user.role === 'admin' ? '/admin' : '/productos');
+        const pending = user.role === 'customer' ? this.pendingCartAddition : null;
+        this.go(null, user.role === 'admin' ? '/admin' : (pending?.returnPath ?? '/productos'));
+        if (pending) {
+          const product = this.data?.products.find((item) => item.id === pending.productId && item.available);
+          if (product) this.addToCart(product, pending.chatMessage);
+          else this.error = 'El producto ya no está disponible.';
+          if (pending.chatMessage) this.chatOpen = true;
+        }
       },
       error: (error) => this.error = error.error?.error || 'No se pudo iniciar sesión.',
     });
   }
 
   logout(): void {
+    this.clearSession();
+    this.go(null, '/');
+  }
+
+  private clearSession(): void {
     this.token = '';
     this.user = null;
     localStorage.removeItem('coffeehouse_token');
-    this.go(null, '/');
   }
 
   checkout(): void {
@@ -262,9 +309,9 @@ export class App implements OnInit, OnDestroy {
   }
 
   confirmChatAdd(message: ChatMessage): void {
-    const product = this.data?.products.find((item) => item.id === message.action?.productId);
-    if (product) this.addToCart(product);
-    message.action = undefined;
+    const product = this.data?.products.find((item) => item.id === message.action?.productId && item.available);
+    if (product) this.addToCart(product, message);
+    else message.action = undefined;
   }
 
   toggleVideo(video: HTMLVideoElement): void {
